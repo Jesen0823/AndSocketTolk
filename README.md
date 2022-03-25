@@ -11,7 +11,7 @@ socket 网络编程
     * 结构简单、无校验、速度快、容易丢包、可广播
 
 
-![udp能做什么](./images/2021-10-10_140553.jpg)
+![udp能做什么](./image/2022-03-25_222450.jpg)
 
 * UDP包最大长度
     * 16位->2字节存储长度信息
@@ -21,7 +21,7 @@ socket 网络编程
 
 * UPP核心api
 
-    * DatagramSocket 用于接收与发送UDP的类,负责发送某一个UDP包，或者接收UDP包
+    * **DatagramSocket** 用于接收与发送UDP的类,负责发送某一个UDP包，或者接收UDP包，UDP没有客户端服务端的说法，既是客户端也是服务端。
         * DatagramSocket()创建简单实例，不指定端口与IP
           DatagramSocket(int port)创建监听固定端口的实例
           DatagramSocket(int port,InetAddress localAddr)创建固定端口指定IP的实例
@@ -29,17 +29,14 @@ socket 网络编程
         * send(DatagramPacket d)：发送
         * setSoTimeout(int timeout)：设置超时，毫秒
         * close() 关闭
-    * DatagramPacket
-      用于处理报文
-      将byte数组、目标地址、目标端口等数据包装成报文或者将报文拆卸成byte数组
-      是UDP的发送实体，也是接收实体
-
+    * **DatagramPacket**
+      用于处理报文，将byte数组、目标地址、目标端口等数据包装成报文或者将报文拆卸成byte数组。是UDP的发送实体，也是接收实体。
       * DatagramPacket(byte[] buf, int offset, int length, InetAddress address, int port)
         前面3个参数指定buf的使用区间
-        后面2个参数指定目标机器地址与端口
-
-    * setData(byte[] buf, int offset, int length)
-      setData(byte[] buf)
+        后面2个参数指定目标机器地址与端口，即要发给谁,如果是接收，那这些参数无效用不到
+      
+    	>setData(byte[] buf, int offset, int length)
+         setData(byte[] buf)
       setLength(int length)
       getData()、 getOffset()、 getLength()
       setAddress(InetAddress iaddr)、 setPort(int iport)
@@ -53,15 +50,17 @@ socket 网络编程
       IP:192.168.124.7
       子网掩码：255.255.255.0
       网络地址(IP和子网掩码进行与或运算得到)：192.168.124.0
-      广播地址：192.168.124.255
-
+      广播地址：192.168.124.255(前3个是网络地址，后一个是255)
+      
     * 广播地址运算
       IP:192.168.124.7
       子网掩码：255.255.255.192
       网络地址：192.168.124.0
       广播地址：192.168.124.63
-      ![ip的7在第一个段0~63](./images/2021-10-10_145727.jpg)
-
+      
+      *计算过程：*
+      ![ip的7在第一个段0~63](./image/2022-03-25_225158.jpg)
+    
 2. **TCP 传输控制协议 面向连接，可靠的，基于字节流的协议，传输层协议**
 
 * TCP 连接机制
@@ -157,38 +156,39 @@ socket 网络编程
    *NIO vs IO
 
       * IO：以流为导向，阻塞IO
+   
        读取数据是一条一条串行的工作。
       * NIO：以缓冲区为导向，非阻塞IO，Selector选择器会将SocketChannel注册到select
-      SocketChannel里面将会存在一份SocketKey, 是注册channel的一个变量，代表了当前的注册状态。
-
+          SocketChannel里面将会存在一份SocketKey, 是注册channel的一个变量，代表了当前的注册状态。
+   
         Channel注册到select中，通过Selector.select()得到
         SelectorKey的一个集合，在该集合中就可以知道是哪一个channel读取了数据，然后开始读取数据
-        channel会读数据到一个buffer中，然后接着处理下一个数据；虽然也是串行的，但是处理数据是channel有数据才会处理，不是阻塞的。
-
-      * [**BIO NIO AIO的介绍与区别**](https://blog.csdn.net/ty497122758/article/details/78979302)
-
+         channel会读数据到一个buffer中，然后接着处理下一个数据；虽然也是串行的，但是处理数据是channel有数据才会处理，不是阻塞的。
+   
+           * [**BIO NIO AIO的介绍与区别**](https://blog.csdn.net/ty497122758/article/details/78979302)
+   
    * 消息粘包
      “粘包”是数据处理的逻辑层面上发生的粘包
      这里所说的“粘包”：包含TCP、UDP甚至其他任意的数据流交互方案，比如依次发送数据包M1,M2,M3,，可能的情况是M1和M2同时到达同时被接收，这就发生了消息粘包。
-     Mina、Netty等框架从根本来说也是为了解决粘包而设计的高并发库。
-
+      Mina、Netty等框架从根本来说也是为了解决粘包而设计的高并发库。
+   
    * 消息不完整
       从数据的传输层面来讲TCP也不会发生数据丢失不全等情况
       一旦出现一定是TCP停止运行终止之时
-      “数据不完整”依然针对的是数据的逻辑接收层面
-
+       “数据不完整”依然针对的是数据的逻辑接收层面
+   
       在物理传输层面来讲数据一定是能安全的完整的送达另一端
       但另一端可能缓冲区不够或者数据处理上不够完整导致数据只能读取一部分数据
-      这种情况称为“数据不完整”“数据丢包”
-
+       这种情况称为“数据不完整”“数据丢包”
+   
    * 如何有序的混传数据
      数据传输加上开始结束标记
      数据传输使用固定头部的方案
-     混合方案：固定头部、数据加密、数据描述
-
+      混合方案：固定头部、数据加密、数据描述
+   
    * Http1.0每次请求都会建立一个socket链接，请求完会断开
-     Http2.0 可以请求复用，建立一个链接可以发起多次请求keep-alive
-
+      Http2.0 可以请求复用，建立一个链接可以发起多次请求keep-alive
+   
 3. 项目框架图
 
 ![结构图](./images/5d5a712c0974cc4713230690.png)
@@ -224,7 +224,7 @@ socket 网络编程
       ![帧Frame数据结构示意](./images/2021-10-14_101842.jpg)
 
   * 分片发送真实的接收顺序可能是这样的：
-  ![帧的接收顺序](./images/2021-10-14_155825.jpg)
+    ![帧的接收顺序](./images/2021-10-14_155825.jpg)
 
    于是需要封装packet,保存Packet、通道、未接收数据长度信息存储：
    ```java
