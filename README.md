@@ -93,7 +93,7 @@ socket 网络编程
 * 传输可靠性
     TCP将数据拆分成数据片，然后排序组装，依次发送，一旦某个数据片发送超时或丢失，会重新发送。
 
-3. 非阻塞I0
+3. **非阻塞I0**
     NIO全称：Non-blocking l/O
    JDK 1.4引入全新的输入输出标准库NIO，也叫New I/O
    在标准Java代码中提供了高速的、可伸缩性的、面向块的、非阻塞的IO操作。
@@ -139,22 +139,23 @@ socket 网络编程
             * 注册到选择器的通道必须为非阻塞状态
             * FileChannel不能用于Selector,因为FileChannel不能切换为非阻塞模式；套接字通道可以
 
-   * NIO重写服务器
+   * **NIO重写服务器**
+        
         * 监听客户端到达
         * 接收、回送客户端数据
         * 转发客户端数据到另外一个客户端
-        * 多客户端的消息处理
-
+       * 多客户端的消息处理
+        
         ByteBuffer的补充：
         put()时position会后移一位，假设移动到n位置
         clear()会将position定位到0，limt移动到末尾
         flip()反转，会把position移动到0位置，limt移动到n位置，以便读取操作。
-        capacity 容量 alloc的buffer大小
-
+       capacity 容量 alloc的buffer大小
+       
        ![Buffer的读写模式](./images/2021-10-12_155847.jpg)
-
+   
    *NIO vs IO
-
+   
       * IO：以流为导向，阻塞IO
    
        读取数据是一条一条串行的工作。
