@@ -8,3 +8,7 @@ dependencyResolutionManagement {
 }
 rootProject.name = "AndSocketTolk"
 include ':app'
+include ':lib_clink'
+include ':sample-foo'
+include ':sample-client'
+include ':sample-server'
