@@ -12,14 +12,20 @@ public class ClientHandler {
     private final ClientReadHandler readHandler;
     private final ClientWriteHandler writeHandler;
     private final ClientHandlerCallback clientHandlerCallback;
+    private final String clientInfo;
 
     public ClientHandler(Socket socket, ClientHandlerCallback clientHandlerCallback) throws IOException {
         this.socket = socket;
         this.readHandler = new ClientReadHandler(socket.getInputStream());
         this.writeHandler = new ClientWriteHandler(socket.getOutputStream());
         this.clientHandlerCallback = clientHandlerCallback;
-        System.out.println("新客户端连接：" + socket.getInetAddress() +
-                " P:" + socket.getPort());
+        this.clientInfo = "address["+socket.getInetAddress()+"], port["+socket.getPort()+"]";
+
+        System.out.println("新客户端连接：" +clientInfo);
+    }
+
+    public String getClientInfo(){
+        return clientInfo;
     }
 
     public void exit() {
@@ -45,6 +51,8 @@ public class ClientHandler {
 
     public interface ClientHandlerCallback {
         void onSelfClosed(ClientHandler handler);
+        // 接收到消息时通知
+        void onNewMessageArrived(ClientHandler handler,String msg);
     }
 
     class ClientReadHandler extends Thread {
@@ -71,8 +79,7 @@ public class ClientHandler {
                         ClientHandler.this.exitBySelf();
                         break;
                     }
-                    // 打印到屏幕
-                    System.out.println(str);
+                    clientHandlerCallback.onNewMessageArrived(ClientHandler.this,str);
                 } while (!done);
             } catch (Exception e) {
                 if (!done) {
