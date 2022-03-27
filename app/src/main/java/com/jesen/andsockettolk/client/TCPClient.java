@@ -1,6 +1,7 @@
 package com.jesen.andsockettolk.client;
 
 import com.jesen.andsockettolk.client.bean.ServerInfo;
+import com.jesen.andsockettolk.clink.net.jesen.clink.utils.CloseUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -11,6 +12,7 @@ import java.io.PrintStream;
 import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 public class TCPClient {
     public static void linkWith(ServerInfo info) throws IOException {
@@ -26,8 +28,13 @@ public class TCPClient {
         System.out.println("服务器信息：" + socket.getInetAddress() + " P:" + socket.getPort());
 
         try {
+            ReadHandler readHandler = new ReadHandler(socket.getInputStream());
+            readHandler.start();
+
             // 发送接收数据
-            todo(socket);
+            write(socket);
+
+            readHandler.exit();
         } catch (Exception e) {
             System.out.println("异常关闭");
         }
@@ -38,7 +45,8 @@ public class TCPClient {
 
     }
 
-    private static void todo(Socket client) throws IOException {
+    // 输出操作
+    private static void write(Socket client) throws IOException {
         // 构建键盘输入流
         InputStream in = System.in;
         BufferedReader input = new BufferedReader(new InputStreamReader(in));
@@ -48,32 +56,71 @@ public class TCPClient {
         OutputStream outputStream = client.getOutputStream();
         PrintStream socketPrintStream = new PrintStream(outputStream);
 
-
-        // 得到Socket输入流，并转换为BufferedReader
-        InputStream inputStream = client.getInputStream();
-        BufferedReader socketBufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-
-        boolean flag = true;
         do {
             // 键盘读取一行
             String str = input.readLine();
             // 发送到服务器
             socketPrintStream.println(str);
 
-
-            // 从服务器读取一行
-            String echo = socketBufferedReader.readLine();
-            if ("bye".equalsIgnoreCase(echo)) {
-                flag = false;
-            } else {
-                System.out.println(echo);
+            if ("00bye00".equalsIgnoreCase(str)) {
+                break;
             }
-        } while (flag);
+        } while (true);
 
         // 资源释放
         socketPrintStream.close();
-        socketBufferedReader.close();
+    }
 
+    // 读取操作
+    static class ReadHandler extends Thread {
+
+        private boolean done = false;
+        private final InputStream inputStream;
+
+        ReadHandler(InputStream inputStream) {
+            this.inputStream = inputStream;
+        }
+
+
+        @Override
+        public void run() {
+            super.run();
+
+            try {
+                // 得到输入流，用于接收数据
+                BufferedReader socketInput = new BufferedReader(new InputStreamReader(inputStream));
+
+                do {
+                    // 客户端拿到一条数据
+                    String str = null;
+                    try {
+                        str = socketInput.readLine();
+                    } catch (SocketTimeoutException e) {
+                        continue;
+                    }
+
+                    if (str == null) {
+                        System.out.println("连接已关闭 无法读取数据");
+                        break;
+                    }
+                    // 打印到屏幕
+                    System.out.println(str);
+
+                } while (!done);
+
+            } catch (Exception e) {
+                if (!done) {
+                    System.out.println("连接异常断开：" + e.getMessage());
+                }
+            } finally {
+                CloseUtils.close(inputStream);
+            }
+        }
+
+        void exit() {
+            done = true;
+            CloseUtils.close(inputStream);
+        }
     }
 
 }
