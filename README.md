@@ -187,7 +187,11 @@ socket 网络编程
         flip()反转，会把position移动到0位置，limt移动到n位置，以便读取操作。
        capacity 容量 alloc的buffer大小
        
-       ![Buffer的读写模式](./images/2021-10-12_155847.jpg)
+       ![写入](./image/2022-03-27_222036.jpg)
+       
+       ![Buffer的读模式](./image/2022-03-27_222201.jpg)
+   
+   ​      ![清理操作](./image/2022-03-27_222452.jpg)
    
    *NIO vs IO
    
