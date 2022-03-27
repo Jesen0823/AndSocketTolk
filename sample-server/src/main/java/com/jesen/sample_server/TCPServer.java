@@ -8,15 +8,20 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TCPServer implements ClientHandler.ClientHandlerCallback {
     private final int port;
     private ClientListener mListener;
     // 需要考虑线程安全问题
     private List<ClientHandler> clientHandlerList = Collections.synchronizedList(new ArrayList<>());
+    // 线程池用来转发收到的消息
+    private final ExecutorService forwardThreadPool;
 
     public TCPServer(int port) {
         this.port = port;
+        this.forwardThreadPool = Executors.newSingleThreadExecutor();
     }
 
     public boolean start() {
@@ -43,6 +48,8 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
         }
 
         clientHandlerList.clear();
+        // 停止转发线程池
+        forwardThreadPool.shutdownNow();
     }
 
     public synchronized void broadcast(String str) {
@@ -60,6 +67,21 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
     public void onNewMessageArrived(ClientHandler handler, String msg) {
         // 消息输出到屏幕
         System.out.println("收到：" + handler.getClientInfo() + ":" + msg);
+        forwardThreadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (TCPServer.this) {
+                    for (ClientHandler clientHandler : clientHandlerList) {
+                        // 如果是发消息的客户端，就不用给它转发了，只转发到其他客户端
+                        if (clientHandler.equals(handler)){
+                            continue;
+                        }
+                        // 给其他客户端转发消息
+                        clientHandler.send(msg);
+                    }
+                }
+            }
+        });
     }
 
     private class ClientListener extends Thread {
