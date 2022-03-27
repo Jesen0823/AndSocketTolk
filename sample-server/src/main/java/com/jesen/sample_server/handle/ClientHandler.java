@@ -19,12 +19,12 @@ public class ClientHandler {
         this.readHandler = new ClientReadHandler(socket.getInputStream());
         this.writeHandler = new ClientWriteHandler(socket.getOutputStream());
         this.clientHandlerCallback = clientHandlerCallback;
-        this.clientInfo = "address["+socket.getInetAddress()+"], port["+socket.getPort()+"]";
-
-        System.out.println("新客户端连接：" +clientInfo);
+        this.clientInfo = "A[" + socket.getInetAddress().getHostAddress()
+                + "] P[" + socket.getPort() + "]";
+        System.out.println("新客户端连接：" + clientInfo);
     }
 
-    public String getClientInfo(){
+    public String getClientInfo() {
         return clientInfo;
     }
 
@@ -50,9 +50,11 @@ public class ClientHandler {
     }
 
     public interface ClientHandlerCallback {
+        // 自身关闭通知
         void onSelfClosed(ClientHandler handler);
-        // 接收到消息时通知
-        void onNewMessageArrived(ClientHandler handler,String msg);
+
+        // 收到消息时通知
+        void onNewMessageArrived(ClientHandler handler, String msg);
     }
 
     class ClientReadHandler extends Thread {
@@ -79,7 +81,8 @@ public class ClientHandler {
                         ClientHandler.this.exitBySelf();
                         break;
                     }
-                    clientHandlerCallback.onNewMessageArrived(ClientHandler.this,str);
+                    // 通知到TCPServer
+                    clientHandlerCallback.onNewMessageArrived(ClientHandler.this, str);
                 } while (!done);
             } catch (Exception e) {
                 if (!done) {
@@ -115,7 +118,7 @@ public class ClientHandler {
         }
 
         void send(String str) {
-            if (done){
+            if(done){
                 return;
             }
             executorService.execute(new WriteRunnable(str));

@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,14 +13,13 @@ import java.util.concurrent.Executors;
 public class TCPServer implements ClientHandler.ClientHandlerCallback {
     private final int port;
     private ClientListener mListener;
-    // 需要考虑线程安全问题
-    private List<ClientHandler> clientHandlerList = Collections.synchronizedList(new ArrayList<>());
-    // 线程池用来转发收到的消息
-    private final ExecutorService forwardThreadPool;
+    private List<ClientHandler> clientHandlerList = new ArrayList<>();
+    private final ExecutorService forwardingThreadPoolExecutor;
 
     public TCPServer(int port) {
         this.port = port;
-        this.forwardThreadPool = Executors.newSingleThreadExecutor();
+        // 转发线程池
+        this.forwardingThreadPoolExecutor = Executors.newSingleThreadExecutor();
     }
 
     public boolean start() {
@@ -45,11 +43,12 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
             for (ClientHandler clientHandler : clientHandlerList) {
                 clientHandler.exit();
             }
+
+            clientHandlerList.clear();
         }
 
-        clientHandlerList.clear();
-        // 停止转发线程池
-        forwardThreadPool.shutdownNow();
+        // 停止线程池
+        forwardingThreadPoolExecutor.shutdownNow();
     }
 
     public synchronized void broadcast(String str) {
@@ -64,24 +63,23 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
     }
 
     @Override
-    public void onNewMessageArrived(ClientHandler handler, String msg) {
-        // 消息输出到屏幕
-        System.out.println("收到：" + handler.getClientInfo() + ":" + msg);
-        forwardThreadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (TCPServer.this) {
-                    for (ClientHandler clientHandler : clientHandlerList) {
-                        // 如果是发消息的客户端，就不用给它转发了，只转发到其他客户端
-                        if (clientHandler.equals(handler)){
-                            continue;
-                        }
-                        // 给其他客户端转发消息
-                        clientHandler.send(msg);
+    public void onNewMessageArrived(final ClientHandler handler, final String msg) {
+        // 打印到屏幕
+        System.out.println("Received-" + handler.getClientInfo() + ":" + msg);
+        // 异步提交转发任务
+        forwardingThreadPoolExecutor.execute(() -> {
+            synchronized (TCPServer.this) {
+                for (ClientHandler clientHandler : clientHandlerList) {
+                    if (clientHandler.equals(handler)) {
+                        // 跳过自己
+                        continue;
                     }
+                    // 对其他客户端发送消息
+                    clientHandler.send(msg);
                 }
             }
         });
+
     }
 
     private class ClientListener extends Thread {
@@ -109,10 +107,10 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
                 }
                 try {
                     // 客户端构建异步线程
-                    ClientHandler clientHandler = new ClientHandler(client,
-                            TCPServer.this);
+                    ClientHandler clientHandler = new ClientHandler(client, TCPServer.this);
                     // 读取数据并打印
                     clientHandler.readToPrint();
+                    // 添加同步处理
                     synchronized (TCPServer.this) {
                         clientHandlerList.add(clientHandler);
                     }
