@@ -118,6 +118,16 @@ socket 网络编程
    > n个客户端：2n条线程
    > 服务器实际线程数量：2n+,因为有线程监听新客户端到来
    
+   经测试，开1000个客户端，线程数会超过2000，内存消耗很大：
+   
+   ![测试情况](./image/2022-03-27_174447.jpg)
+   
+   
+   
+   [性能测试链接 ：simple_chatroom_test_08]: https://github.com/Jesen0823/AndSocketTolk/tree/simple_chatroom_test_08
+   
+   
+   
 3. **非阻塞I0**
     NIO全称：Non-blocking l/O
    JDK 1.4引入全新的输入输出标准库NIO，也叫New I/O
